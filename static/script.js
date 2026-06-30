@@ -194,4 +194,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     loadResults();
+
+    // Auto-refresh: always trigger a fresh fetch on dashboard load
+    setTimeout(async () => {
+        const btn = document.getElementById('fetch-btn');
+        if (btn && !btn.disabled) {
+            btn.disabled = true;
+            btn.textContent = 'Auto...';
+            document.getElementById('progress-section').style.display = 'block';
+            try {
+                const res = await fetch('/api/fetch', { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) {
+                    pollInterval = setInterval(pollStatus, 1000);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'Fetch Data';
+                    document.getElementById('progress-section').style.display = 'none';
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Fetch Data';
+                document.getElementById('progress-section').style.display = 'none';
+            }
+        }
+    }, 500);
 });
