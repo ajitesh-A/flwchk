@@ -317,6 +317,54 @@ def api_login_session_file():
     _save_session_data(sid, _sessions[sid])
     return jsonify({"ok": True, "user_id": client.user_id})
 
+@app.route("/api/login-sessionid", methods=["POST"])
+def api_login_sessionid():
+    data = request.get_json()
+    sessionid = data.get("sessionid", "").strip()
+    if not sessionid:
+        return jsonify({"ok": False, "error": "sessionid is required"})
+
+    cookies = {"sessionid": sessionid}
+    csrftoken = data.get("csrftoken", "").strip()
+    ds_user_id = data.get("ds_user_id", "").strip()
+    if csrftoken:
+        cookies["csrftoken"] = csrftoken
+    if ds_user_id:
+        cookies["ds_user_id"] = ds_user_id
+
+    client = _make_client()
+    settings = client.get_settings()
+    settings["cookies"] = cookies
+    client.set_settings(settings)
+
+    if not ds_user_id:
+        ds_user_id = str(client.user_id or "")
+    if not ds_user_id and "%3A" in sessionid:
+        ds_user_id = sessionid.split("%3A")[0]
+    if not ds_user_id and ":" in sessionid:
+        ds_user_id = sessionid.split(":")[0]
+    if not ds_user_id:
+        return jsonify({"ok": False, "error": "Could not determine user ID. Provide ds_user_id or a valid sessionid."})
+
+    try:
+        client.user_id = int(ds_user_id)
+    except ValueError:
+        return jsonify({"ok": False, "error": f"Invalid user ID: {ds_user_id}"})
+
+    sid = str(uuid.uuid4())
+    session["sid"] = sid
+    _sessions[sid] = {
+        "client": client,
+        "username": "",
+        "user_id": client.user_id,
+        "non_followers": [],
+        "followers_count": 0,
+        "following_count": 0,
+        "task_status": None,
+    }
+    _save_session_data(sid, _sessions[sid])
+    return jsonify({"ok": True, "user_id": client.user_id})
+
 @app.route("/api/logout", methods=["POST"])
 def api_logout():
     sid = session.pop("sid", None)

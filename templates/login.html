@@ -2,7 +2,7 @@
 <html class="dark" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FLWCHK | Setup</title>
+<title>FLWCHK | Sign In</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -134,76 +134,180 @@
                         radial-gradient(at 50% 50%, rgba(131, 58, 180, 0.05) 0px, transparent 50%);
             background-color: #0c0f0f;
         }
+        .highlight-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(227, 181, 255, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(227, 181, 255, 0); }
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-base">
+<body class="min-h-screen flex flex-col items-center justify-center p-base md:p-gutter">
 <div class="mesh-gradient"></div>
 <div class="fixed inset-0 pointer-events-none opacity-40 overflow-hidden">
 <div class="absolute -top-1/4 -left-1/4 w-full h-full bg-primary-container rounded-full blur-[180px] opacity-20"></div>
 <div class="absolute -bottom-1/4 -right-1/4 w-full h-full bg-[#121414] rounded-full blur-[180px]"></div>
 </div>
-<main class="relative z-10 w-full max-w-[500px] flex flex-col gap-gutter animate-in fade-in slide-in-from-bottom-4 duration-1000">
-<header class="text-center space-y-base mb-base flex flex-col items-center">
-<img alt="FLWCHK Logo" class="w-20 h-20 mb-base drop-shadow-[0_0_15px_rgba(227,181,255,0.3)]" src="/static/img/logo.svg"/>
-<h1 class="font-display-lg text-[64px] leading-tight uppercase font-black tracking-tighter text-gradient mb-2" style="font-weight: 900; letter-spacing: -0.04em;">FLWCHK</h1>
+<main class="relative z-10 w-full flex flex-col items-center gap-gutter animate-in fade-in slide-in-from-bottom-4 duration-1000">
+<header class="text-center flex flex-col items-center">
+<img alt="FLWCHK Logo" class="w-16 h-16 drop-shadow-[0_0_15px_rgba(227,181,255,0.3)]" src="/static/img/logo.svg"/>
+<h1 class="font-display-lg text-[48px] leading-tight uppercase font-black tracking-tighter text-gradient" style="font-weight: 900; letter-spacing: -0.04em;">FLWCHK</h1>
 </header>
-<section class="glass-card rounded-xl p-gutter shadow-2xl">
-<form class="flex flex-col gap-gutter" id="login-form">
-<div class="space-y-base">
-<label class="font-label-md text-label-md text-on-surface-variant px-1 uppercase tracking-widest opacity-60" for="username">Instagram Username</label>
-<div class="relative">
-<span class="material-symbols-outlined absolute left-gutter top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">person</span>
-<input class="w-full h-12 pl-11 pr-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="username" placeholder="Enter your username" type="text"/>
-</div>
-</div>
-<div class="space-y-base">
-<label class="font-label-md text-label-md text-on-surface-variant px-1 uppercase tracking-widest opacity-60" for="password">Password</label>
-<div class="relative">
-<span class="material-symbols-outlined absolute left-gutter top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">lock</span>
-<input class="w-full h-12 pl-11 pr-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" type="password"/>
-                </div>
-            </div>
-            <div class="space-y-base" id="code-field" style="display:none">
-                <label class="font-label-md text-label-md text-on-surface-variant px-1 uppercase tracking-widest opacity-60" for="verification-code">Verification Code</label>
-                <div class="relative">
-                    <span class="material-symbols-outlined absolute left-gutter top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">pin</span>
-                    <input class="w-full h-12 pl-11 pr-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="verification-code" placeholder="Enter code from email/SMS" type="text" autocomplete="off"/>
-                </div>
-                <div class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed" id="challenge-url-container" style="display:none">
-                    Open <a class="text-primary underline break-all" id="challenge-url-link" href="#" target="_blank"></a> in your browser, complete the challenge, then enter the code above.
-                </div>
-            </div>
-            <button class="w-full h-12 purple-gradient-bg text-white font-headline-lg-mobile rounded-lg hover:brightness-125 active:scale-[0.98] transition-all flex items-center justify-center gap-base border border-white/10 shadow-[0_4px_20px_rgba(131,58,180,0.4)]" id="login-btn" type="submit">
-                    Log In
-                    <span class="material-symbols-outlined text-[20px]">login</span>
+
+<div class="w-full max-w-[900px] flex flex-col lg:flex-row gap-gutter">
+  <!-- Left: Visual Guide -->
+  <section class="flex-1 glass-card rounded-xl p-gutter shadow-2xl">
+    <h2 class="font-headline-lg text-headline-lg text-on-surface mb-base flex items-center gap-base">
+      <span class="material-symbols-outlined text-primary">travel_explore</span> How to Sign In
+    </h2>
+    <div class="w-full overflow-hidden rounded-lg border border-white/5 mb-gutter">
+      <img alt="DevTools guide showing how to copy sessionid cookie from Chrome" class="w-full h-auto" src="/static/img/devtools-guide.svg"/>
+    </div>
+    <ol class="space-y-3">
+      <li class="flex items-start gap-3">
+        <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary-container flex items-center justify-center text-sm font-bold text-white">1</span>
+        <span class="font-body-md text-body-md text-on-surface-variant">Open <strong>Instagram.com</strong> in Chrome and log in</span>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary-container flex items-center justify-center text-sm font-bold text-white">2</span>
+        <span class="font-body-md text-body-md text-on-surface-variant">Press <strong>F12</strong> (or right-click → Inspect)</span>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="flex-shrink-0 w-7 h-7 rounded-full bg-on-primary text-sm font-bold text-on-primary">3</span>
+        <span class="font-body-md text-body-md text-on-surface-variant">Go to <strong>Application → Cookies → instagram.com</strong></span>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="flex-shrink-0 w-7 h-7 rounded-full bg-on-primary text-sm font-bold text-on-primary">4</span>
+        <span class="font-body-md text-body-md text-on-surface-variant">Click <strong>sessionid</strong>, copy its <strong>Value</strong></span>
+      </li>
+      <li class="flex items-start gap-3">
+        <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary-container flex items-center justify-center text-sm font-bold text-white">5</span>
+        <span class="font-body-md text-body-md text-on-surface-variant">Paste it below and click <strong>Sign In</strong></span>
+      </li>
+    </ol>
+  </section>
+
+  <!-- Right: Session ID Paste -->
+  <section class="flex-1 glass-card rounded-xl p-gutter shadow-2xl flex flex-col gap-gutter">
+    <h2 class="font-headline-lg text-headline-lg text-on-surface flex items-center gap-base">
+      <span class="material-symbols-outlined text-primary">vpn_key</span> Sign In
+    </h2>
+
+    <form class="flex flex-col gap-gutter" id="sessionid-form">
+      <div class="space-y-base">
+        <label class="font-label-md text-label-md text-on-surface-variant px-1 uppercase tracking-widest opacity-60" for="sessionid-input">Paste your Instagram Session ID</label>
+        <textarea class="w-full h-24 p-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all resize-none" id="sessionid-input" placeholder="Paste the sessionid value here..." spellcheck="false"></textarea>
+      </div>
+      <button class="w-full h-12 purple-gradient-bg text-white font-headline-lg-mobile rounded-lg hover:brightness-125 active:scale-[0.98] transition-all flex items-center justify-center gap-base border border-white/10 shadow-[0_4px_20px_rgba(131,58,180,0.4)] highlight-pulse" id="sessionid-btn" type="submit">
+              Sign In
+              <span class="material-symbols-outlined text-[20px]">login</span>
+</button>
+</form>
+
+    <div class="relative">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/5"></div></div>
+      <div class="relative flex justify-center"><span class="px-3 bg-surface-container-low text-outline-variant font-label-md text-label-md">or</span></div>
+    </div>
+
+    <div class="text-center">
+      <button class="font-label-md text-label-md text-outline-variant uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity cursor-pointer bg-transparent border-none" id="toggle-password" type="button" style="font-size:10px">Sign in with username &amp; password</button>
+    </div>
+
+    <form class="flex-col gap-gutter" id="password-form" style="display:none">
+      <div class="space-y-base">
+        <label class="font-label-md text-label-md text-on-surface-variant px-1 uppercase tracking-widest opacity-60" for="username">Username</label>
+        <input class="w-full h-12 px-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="username" placeholder="Instagram username" type="text"/>
+      </div>
+      <div class="space-y-base">
+        <label class="font-label-md text-label-md text-on-surface-variant px-1 uppercase tracking-widest opacity-60" for="password">Password</label>
+        <input class="w-full h-12 px-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" type="password"/>
+      </div>
+      <div class="space-y-base" id="code-field" style="display:none">
+        <label class="font-label-md text-label-md text-on-surface-variant px-1 uppercase tracking-widest opacity-60" for="verification-code">Verification Code</label>
+        <input class="w-full h-12 px-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="verification-code" placeholder="Enter code from email/SMS" type="text" autocomplete="off"/>
+        <div class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed" id="challenge-url-container" style="display:none">
+          Open <a class="text-primary underline break-all" id="challenge-url-link" href="#" target="_blank"></a> in your browser, complete the challenge, then enter the code above.
+        </div>
+      </div>
+      <button class="w-full h-12 purple-gradient-bg text-white font-headline-lg-mobile rounded-lg hover:brightness-125 active:scale-[0.98] transition-all flex items-center justify-center gap-base border border-white/10 shadow-[0_4px_20px_rgba(131,58,180,0.4)]" id="password-btn" type="submit">
+              Log In
+              <span class="material-symbols-outlined text-[20px]">login</span>
 </button>
 </form>
 </section>
-<div class="text-center">
-<button class="font-label-md text-label-md text-outline-variant uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity cursor-pointer bg-transparent border-none" id="toggle-cookie" type="button" style="font-size:10px">Or sign in with cookies</button>
 </div>
-<section class="glass-card rounded-xl p-gutter shadow-2xl" id="cookie-section" style="display:none">
-<form class="flex flex-col gap-gutter" id="cookie-form">
-<p class="font-label-md text-label-md text-on-surface-variant opacity-60">Upload Instagram cookies exported from your browser (JSON or Netscape format).</p>
-<input accept=".json,.txt" class="w-full text-on-surface font-body-md file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:purple-gradient-bg file:text-white file:font-body-md file:cursor-pointer" id="cookie-file" type="file"/>
-<button class="w-full h-12 purple-gradient-bg text-white font-headline-lg-mobile rounded-lg hover:brightness-125 active:scale-[0.98] transition-all flex items-center justify-center gap-base border border-white/10 shadow-[0_4px_20px_rgba(131,58,180,0.4)]" id="cookie-btn" type="submit">
-                        Sign In with Cookies
-                        <span class="material-symbols-outlined text-[20px]">key</span>
-</button>
-</form>
-</section>
-<div class="px-base">
+
+<div class="w-full max-w-[900px]">
 <div class="w-full bg-surface-container-low backdrop-blur-sm border border-white/5 rounded-lg p-gutter min-h-[60px] flex items-start gap-base">
 <span class="material-symbols-outlined text-primary text-[20px] animate-pulse" id="status-icon">info</span>
 <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed" id="status-message">
-                    System ready. Enter credentials to begin.
-                </p>
+                Paste your Instagram session ID above to sign in.
+            </p>
 </div>
 </div>
 </main>
 <script>
 let currentTempId = null;
 
+function setStatus(text, type) {
+    const msg = document.getElementById('status-message');
+    const icon = document.getElementById('status-icon');
+    msg.textContent = text;
+    msg.className = 'font-body-sm text-body-sm leading-relaxed ' +
+        (type === 'error' ? 'text-error' : type === 'success' ? 'text-primary' : 'text-on-surface-variant');
+    icon.textContent = type === 'error' ? 'error' : type === 'loading' ? 'sync' : 'check_circle';
+    icon.className = 'material-symbols-outlined text-[20px] ' +
+        (type === 'error' ? 'text-error' : 'text-primary') +
+        (type === 'loading' ? ' animate-spin' : '');
+}
+
+// Session ID paste
+document.getElementById('sessionid-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const sessionid = document.getElementById('sessionid-input').value.trim();
+    if (!sessionid) {
+        setStatus('Paste your Instagram session ID first.', 'error');
+        return;
+    }
+    const btn = document.getElementById('sessionid-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="animate-spin material-symbols-outlined text-[20px]">sync</span> Signing in...';
+    setStatus('Verifying session...', 'loading');
+    try {
+        const res = await fetch('/api/login-sessionid', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionid }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+            setStatus('Signed in successfully. Redirecting...', 'success');
+            window.location.href = '/dashboard';
+        } else {
+            setStatus(data.error || 'Invalid session ID.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = 'Sign In <span class="material-symbols-outlined text-[20px]">login</span>';
+        }
+    } catch (err) {
+        setStatus('Network error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In <span class="material-symbols-outlined text-[20px]">login</span>';
+    }
+});
+
+// Password login toggle
+const togglePassword = document.getElementById('toggle-password');
+const passwordForm = document.getElementById('password-form');
+togglePassword.addEventListener('click', () => {
+    const shown = passwordForm.style.display !== 'none';
+    passwordForm.style.display = shown ? 'none' : 'flex';
+    passwordForm.style.flexDirection = 'column';
+    passwordForm.style.gap = 'var(--spacing-base, 8px)';
+    togglePassword.textContent = shown ? 'Sign in with username & password' : 'Hide password login';
+});
+
+// Password form submit (from old code, adapted)
 async function submitLogin(username, password) {
     const res = await fetch('/api/login', {
         method: 'POST',
@@ -222,136 +326,54 @@ async function submit2FA(code) {
     return res.json();
 }
 
-function setStatus(text, type) {
-    const msg = document.getElementById('status-message');
-    const icon = document.getElementById('status-icon');
-    msg.textContent = text;
-    msg.className = 'font-body-sm text-body-sm leading-relaxed ' +
-        (type === 'error' ? 'text-error' : type === 'success' ? 'text-primary' : 'text-on-surface-variant');
-    icon.textContent = type === 'error' ? 'error' : type === 'loading' ? 'sync' : 'check_circle';
-    icon.className = 'material-symbols-outlined text-[20px] ' +
-        (type === 'error' ? 'text-error' : 'text-primary') +
-        (type === 'loading' ? ' animate-spin' : '');
-}
-
-document.getElementById('login-form').addEventListener('submit', async (e) => {
+document.getElementById('password-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const codeField = document.getElementById('code-field');
     const codeInput = document.getElementById('verification-code');
-    const btn = document.getElementById('login-btn');
+    const btn = document.getElementById('password-btn');
 
     if (currentTempId) {
         const code = codeInput.value.trim();
-        if (!code) {
-            setStatus('Enter the verification code sent to your email or SMS.', 'error');
-            return;
-        }
+        if (!code) { setStatus('Enter the verification code.', 'error'); return; }
         btn.disabled = true;
         btn.innerHTML = '<span class="animate-spin material-symbols-outlined text-[20px]">sync</span> Verifying...';
         setStatus('Verifying code...', 'loading');
         try {
             const data = await submit2FA(code);
-            if (data.ok) {
-                setStatus('Authentication successful. Redirecting...', 'success');
-                window.location.href = '/dashboard';
-            } else {
-                setStatus(data.error || 'Verification failed. Try again.', 'error');
-                btn.disabled = false;
-                btn.innerHTML = 'Verify';
-            }
-        } catch (err) {
-            setStatus('Network error. Please try again.', 'error');
-            btn.disabled = false;
-            btn.innerHTML = 'Verify';
-        }
+            if (data.ok) { setStatus('Success. Redirecting...', 'success'); window.location.href = '/dashboard'; }
+            else { setStatus(data.error || 'Verification failed.', 'error'); btn.disabled = false; btn.innerHTML = 'Verify'; }
+        } catch (err) { setStatus('Network error.', 'error'); btn.disabled = false; btn.innerHTML = 'Verify'; }
         return;
     }
 
-    if (!username || !password) {
-        setStatus('Username and password required.', 'error');
-        return;
-    }
-
+    if (!username || !password) { setStatus('Username and password required.', 'error'); return; }
     btn.disabled = true;
     btn.innerHTML = '<span class="animate-spin material-symbols-outlined text-[20px]">sync</span> Authenticating...';
-    setStatus('Attempting connection to FLWCHK secure nodes...', 'loading');
-
+    setStatus('Attempting login...', 'loading');
     try {
         const data = await submitLogin(username, password);
-        if (data.ok) {
-            setStatus('Authentication successful. Redirecting...', 'success');
-            window.location.href = '/dashboard';
-        } else if (data.requires_2fa) {
+        if (data.ok) { setStatus('Success. Redirecting...', 'success'); window.location.href = '/dashboard'; }
+        else if (data.requires_2fa) {
             currentTempId = data.temp_id;
             codeField.style.display = 'flex';
             codeField.style.flexDirection = 'column';
             codeField.style.gap = 'var(--spacing-base, 8px)';
-            const challengeContainer = document.getElementById('challenge-url-container');
-            const challengeLink = document.getElementById('challenge-url-link');
-            if (data.challenge_url) {
-                challengeLink.href = data.challenge_url;
-                challengeLink.textContent = data.challenge_url;
-                challengeContainer.style.display = 'block';
-            } else {
-                challengeContainer.style.display = 'none';
-            }
+            const cc = document.getElementById('challenge-url-container');
+            const cl = document.getElementById('challenge-url-link');
+            if (data.challenge_url) { cl.href = data.challenge_url; cl.textContent = data.challenge_url; cc.style.display = 'block'; }
+            else { cc.style.display = 'none'; }
             btn.innerHTML = 'Verify';
             setStatus(data.error, 'error');
             codeInput.focus();
             btn.disabled = false;
         } else {
-            codeField.style.display = 'none';
-            setStatus(data.error || 'Login failed. Check credentials.', 'error');
+            setStatus(data.error || 'Login failed.', 'error');
             btn.disabled = false;
             btn.innerHTML = 'Log In <span class="material-symbols-outlined text-[20px]">login</span>';
         }
-    } catch (err) {
-        setStatus('Network error. Please try again.', 'error');
-        btn.disabled = false;
-        btn.innerHTML = 'Log In <span class="material-symbols-outlined text-[20px]">login</span>';
-    }
-});
-
-// Cookie upload toggle
-const toggleCookie = document.getElementById('toggle-cookie');
-const cookieSection = document.getElementById('cookie-section');
-toggleCookie.addEventListener('click', () => {
-    const shown = cookieSection.style.display !== 'none';
-    cookieSection.style.display = shown ? 'none' : 'flex';
-    cookieSection.style.flexDirection = 'column';
-    cookieSection.style.gap = 'var(--spacing-base, 8px)';
-    toggleCookie.textContent = shown ? 'Or sign in with cookies' : 'Hide cookie upload';
-});
-
-document.getElementById('cookie-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fileInput = document.getElementById('cookie-file');
-    const file = fileInput.files[0];
-    if (!file) { setStatus('Select a cookie file first.', 'error'); return; }
-    const btn = document.getElementById('cookie-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="animate-spin material-symbols-outlined text-[20px]">sync</span> Authenticating...';
-    setStatus('Uploading and verifying cookies...', 'loading');
-    try {
-        const fd = new FormData();
-        fd.append('cookies', file);
-        const res = await fetch('/api/login-cookie', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.ok) {
-            setStatus('Authentication successful. Redirecting...', 'success');
-            window.location.href = '/dashboard';
-        } else {
-            setStatus(data.error || 'Cookie login failed.', 'error');
-            btn.disabled = false;
-            btn.innerHTML = 'Sign In with Cookies <span class="material-symbols-outlined text-[20px]">key</span>';
-        }
-    } catch (err) {
-        setStatus('Network error. Please try again.', 'error');
-        btn.disabled = false;
-        btn.innerHTML = 'Sign In with Cookies <span class="material-symbols-outlined text-[20px]">key</span>';
-    }
+    } catch (err) { setStatus('Network error.', 'error'); btn.disabled = false; btn.innerHTML = 'Log In <span class="material-symbols-outlined text-[20px]">login</span>'; }
 });
 </script>
 </body></html>
