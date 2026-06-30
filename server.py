@@ -352,10 +352,10 @@ def api_login_sessionid():
     if not client.user_id:
         client._user_id = int(ds_user_id)
 
-    username = f"user_{client.user_id}"
+    username = data.get("username", "").strip() or f"user_{client.user_id}"
     try:
-        resp = client.private_request(f"users/{client.user_id}/info/")
-        username = resp.get("user", {}).get("username", username)
+        info = client.account_info()
+        username = info.username or username
     except Exception:
         pass
 
