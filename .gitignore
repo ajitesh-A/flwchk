@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+sessions/
+.vscode/
+login_raw.html
+dashboard_raw.html
