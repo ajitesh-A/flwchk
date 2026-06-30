@@ -1,4 +1,5 @@
 import os
+import time
 import uuid
 import threading
 
@@ -6,6 +7,7 @@ from flask import Flask, session, request, jsonify, render_template
 from functools import wraps
 
 from instagrapi import Client
+from instagrapi.exceptions import LoginRequired, ChallengeRequired
 
 from fetcher import fetch_followers, fetch_following
 from analyzer import find_non_followers
@@ -14,6 +16,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-prod")
 
 _sessions: dict[str, dict] = {}
+_pending_logins: dict[str, dict] = {}
 
 def get_user_session() -> dict | None:
     sid = session.get("sid")
@@ -28,6 +31,17 @@ def requires_auth(f):
             return jsonify({"ok": False, "error": "Not logged in"}), 401
         return f(*args, **kwargs)
     return decorated
+
+def _cleanup_pending():
+    while True:
+        time.sleep(300)
+        now = time.time()
+        expired = [k for k, v in _pending_logins.items() if now - v["created_at"] > 300]
+        for k in expired:
+            _pending_logins.pop(k, None)
+
+threading.Thread(target=_cleanup_pending, daemon=True).start()
+
 
 def _make_client() -> Client:
     client = Client()
@@ -58,8 +72,73 @@ def api_login():
     try:
         client = _make_client()
         client.login(username, password)
+    except LoginRequired:
+        temp_id = str(uuid.uuid4())
+        _pending_logins[temp_id] = {
+            "client": client,
+            "username": username,
+            "password": password,
+            "created_at": time.time(),
+        }
+        return jsonify({
+            "ok": False,
+            "requires_2fa": True,
+            "temp_id": temp_id,
+            "error": "Instagram requires a verification code. Check your email or SMS.",
+        })
+    except ChallengeRequired:
+        temp_id = str(uuid.uuid4())
+        _pending_logins[temp_id] = {
+            "client": client,
+            "username": username,
+            "password": password,
+            "created_at": time.time(),
+        }
+        return jsonify({
+            "ok": False,
+            "requires_2fa": True,
+            "temp_id": temp_id,
+            "error": "Instagram requires a challenge response. Check your email or SMS.",
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": f"Login failed: {e}"})
+
+    sid = str(uuid.uuid4())
+    session["sid"] = sid
+    _sessions[sid] = {
+        "client": client,
+        "username": username,
+        "user_id": client.user_id,
+        "non_followers": [],
+        "followers_count": 0,
+        "following_count": 0,
+        "task_status": None,
+    }
+
+    return jsonify({"ok": True, "user_id": client.user_id})
+
+
+@app.route("/api/login-2fa", methods=["POST"])
+def api_login_2fa():
+    data = request.get_json()
+    temp_id = data.get("temp_id", "")
+    code = data.get("verification_code", "").strip()
+
+    if not temp_id or not code:
+        return jsonify({"ok": False, "error": "temp_id and verification_code required"})
+
+    pending = _pending_logins.pop(temp_id, None)
+    if not pending:
+        return jsonify({"ok": False, "error": "Verification session expired or invalid. Please login again."})
+
+    client = pending["client"]
+    username = pending["username"]
+    password = pending["password"]
+
+    try:
+        client.login(username, password, verification_code=code)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Verification failed: {e}"})
 
     sid = str(uuid.uuid4())
     session["sid"] = sid

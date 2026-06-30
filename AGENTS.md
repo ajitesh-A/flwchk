@@ -32,12 +32,19 @@ Web app at `instagram_nonfollowers/` that checks which Instagram accounts you fo
 
 | Method | Path | Auth | Body | Returns |
 |--------|------|------|------|---------|
-| POST | `/api/login` | No | `{username, password}` | `{ok, user_id}` |
+| POST | `/api/login` | No | `{username, password}` | `{ok, user_id}` or `{ok: false, requires_2fa: true, temp_id}` |
+| POST | `/api/login-2fa` | No | `{temp_id, verification_code}` | `{ok, user_id}` |
 | POST | `/api/logout` | Yes | — | `{ok}` |
 | POST | `/api/fetch` | Yes | — | `{ok}` |
 | GET | `/api/fetch-status` | Yes | — | `{running, phase, current, error}` |
 | GET | `/api/results` | Yes | — | `{ok, username, followers, following, non_followers[]}` |
 | POST | `/api/unfollow` | Yes | `{user_id}` | `{ok}` |
+
+## 2FA / Login verification
+- If Instagram requires a verification code, `/api/login` returns `requires_2fa: true` + `temp_id`
+- The Client instance with challenge state is stored in `_pending_logins` dict keyed by `temp_id`
+- Frontend shows a verification code input and calls `/api/login-2fa` with the code
+- Pending logins expire after 5 minutes (cleaned up by background thread)
 
 ## Routes (HTML)
 - `GET /` → Login page

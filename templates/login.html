@@ -164,9 +164,16 @@
 <div class="relative">
 <span class="material-symbols-outlined absolute left-gutter top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">lock</span>
 <input class="w-full h-12 pl-11 pr-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" type="password"/>
-</div>
-</div>
-<button class="w-full h-12 purple-gradient-bg text-white font-headline-lg-mobile rounded-lg hover:brightness-125 active:scale-[0.98] transition-all flex items-center justify-center gap-base border border-white/10 shadow-[0_4px_20px_rgba(131,58,180,0.4)]" id="login-btn" type="submit">
+                </div>
+            </div>
+            <div class="space-y-base" id="code-field" style="display:none">
+                <label class="font-label-md text-label-md text-on-surface-variant px-1 uppercase tracking-widest opacity-60" for="verification-code">Verification Code</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-gutter top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">pin</span>
+                    <input class="w-full h-12 pl-11 pr-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="verification-code" placeholder="Enter code from email/SMS" type="text" autocomplete="off"/>
+                </div>
+            </div>
+            <button class="w-full h-12 purple-gradient-bg text-white font-headline-lg-mobile rounded-lg hover:brightness-125 active:scale-[0.98] transition-all flex items-center justify-center gap-base border border-white/10 shadow-[0_4px_20px_rgba(131,58,180,0.4)]" id="login-btn" type="submit">
                     Log In
                     <span class="material-symbols-outlined text-[20px]">login</span>
 </button>
@@ -187,49 +194,106 @@
 </footer>
 </main>
 <script>
+let currentTempId = null;
+
+async function submitLogin(username, password) {
+    const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+    });
+    return res.json();
+}
+
+async function submit2FA(code) {
+    const res = await fetch('/api/login-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ temp_id: currentTempId, verification_code: code }),
+    });
+    return res.json();
+}
+
+function setStatus(text, type) {
+    const msg = document.getElementById('status-message');
+    const icon = document.getElementById('status-icon');
+    msg.textContent = text;
+    msg.className = 'font-body-sm text-body-sm leading-relaxed ' +
+        (type === 'error' ? 'text-error' : type === 'success' ? 'text-primary' : 'text-on-surface-variant');
+    icon.textContent = type === 'error' ? 'error' : type === 'loading' ? 'sync' : 'check_circle';
+    icon.className = 'material-symbols-outlined text-[20px] ' +
+        (type === 'error' ? 'text-error' : 'text-primary') +
+        (type === 'loading' ? ' animate-spin' : '');
+}
+
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
+    const codeField = document.getElementById('code-field');
+    const codeInput = document.getElementById('verification-code');
     const btn = document.getElementById('login-btn');
-    const msg = document.getElementById('status-message');
-    const icon = document.getElementById('status-icon');
+
+    if (currentTempId) {
+        const code = codeInput.value.trim();
+        if (!code) {
+            setStatus('Enter the verification code sent to your email or SMS.', 'error');
+            return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<span class="animate-spin material-symbols-outlined text-[20px]">sync</span> Verifying...';
+        setStatus('Verifying code...', 'loading');
+        try {
+            const data = await submit2FA(code);
+            if (data.ok) {
+                setStatus('Authentication successful. Redirecting...', 'success');
+                window.location.href = '/dashboard';
+            } else {
+                setStatus(data.error || 'Verification failed. Try again.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Verify';
+            }
+        } catch (err) {
+            setStatus('Network error. Please try again.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = 'Verify';
+        }
+        return;
+    }
+
+    if (!username || !password) {
+        setStatus('Username and password required.', 'error');
+        return;
+    }
 
     btn.disabled = true;
     btn.innerHTML = '<span class="animate-spin material-symbols-outlined text-[20px]">sync</span> Authenticating...';
-    icon.textContent = 'sync';
-    icon.className = 'material-symbols-outlined text-primary text-[20px] animate-spin';
-    msg.textContent = 'Attempting connection to FLWCHK secure nodes...';
-    msg.className = 'font-body-sm text-body-sm text-primary leading-relaxed';
+    setStatus('Attempting connection to FLWCHK secure nodes...', 'loading');
 
     try {
-        const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
-        });
-        const data = await res.json();
+        const data = await submitLogin(username, password);
         if (data.ok) {
-            msg.textContent = 'Authentication successful. Redirecting to dashboard...';
+            setStatus('Authentication successful. Redirecting...', 'success');
             window.location.href = '/dashboard';
+        } else if (data.requires_2fa) {
+            currentTempId = data.temp_id;
+            codeField.style.display = 'flex';
+            codeField.style.flexDirection = 'column';
+            codeField.style.gap = 'var(--spacing-base, 8px)';
+            btn.innerHTML = 'Verify';
+            setStatus(data.error, 'error');
+            codeInput.focus();
+            btn.disabled = false;
         } else {
-            icon.textContent = 'error';
-            icon.className = 'material-symbols-outlined text-error text-[20px]';
-            msg.textContent = data.error || 'Login failed. Check credentials.';
-            msg.className = 'font-body-sm text-body-sm text-error leading-relaxed';
+            setStatus(data.error || 'Login failed. Check credentials.', 'error');
             btn.disabled = false;
             btn.innerHTML = 'Log In <span class="material-symbols-outlined text-[20px]">login</span>';
         }
-        return;
     } catch (err) {
-        icon.textContent = 'error';
-        icon.className = 'material-symbols-outlined text-error text-[20px]';
-        msg.textContent = 'Network error. Please try again.';
-        msg.className = 'font-body-sm text-body-sm text-error leading-relaxed';
+        setStatus('Network error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Log In <span class="material-symbols-outlined text-[20px]">login</span>';
     }
-
-    btn.disabled = false;
-    btn.innerHTML = 'Log In <span class="material-symbols-outlined text-[20px]">login</span>';
 });
 </script>
 </body></html>
