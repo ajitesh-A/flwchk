@@ -353,11 +353,6 @@ def api_login_sessionid():
         client._user_id = int(ds_user_id)
 
     username = data.get("username", "").strip() or f"user_{client.user_id}"
-    try:
-        info = client.account_info().dict()
-        username = info.get("username", username)
-    except Exception:
-        pass
 
     sid = str(uuid.uuid4())
     session["sid"] = sid
@@ -404,12 +399,6 @@ def api_fetch():
             us["non_followers"] = non_followers
             us["followers_count"] = len(followers)
             us["following_count"] = len(following)
-            try:
-                info = client.account_info().dict()
-                if info.get("username"):
-                    us["username"] = info["username"]
-            except Exception:
-                pass
             status["phase"] = "done"
         except Exception as e:
             status["phase"] = "error"
