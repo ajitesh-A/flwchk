@@ -302,6 +302,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             codeInput.focus();
             btn.disabled = false;
         } else {
+            codeField.style.display = 'none';
             setStatus(data.error || 'Login failed. Check credentials.', 'error');
             btn.disabled = false;
             btn.innerHTML = 'Log In <span class="material-symbols-outlined text-[20px]">login</span>';

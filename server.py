@@ -157,22 +157,33 @@ def api_login():
     try:
         client = _make_client()
         client.login(username, password)
-    except LoginRequired:
-        temp_id = str(uuid.uuid4())
-        _pending_logins[temp_id] = {
-            "client": client,
-            "username": username,
-            "password": password,
-            "created_at": time.time(),
-        }
+    except LoginRequired as e:
+        challenge = getattr(e, "challenge", None)
+        if challenge and challenge.get("api_path"):
+            challenge_url = f"https://i.instagram.com{challenge['api_path']}"
+            temp_id = str(uuid.uuid4())
+            _pending_logins[temp_id] = {
+                "client": client,
+                "username": username,
+                "password": password,
+                "created_at": time.time(),
+            }
+            return jsonify({
+                "ok": False,
+                "requires_2fa": True,
+                "temp_id": temp_id,
+                "challenge_url": challenge_url,
+                "error": "Instagram requires a manual challenge. Open the URL in your browser to complete it, then click Verify.",
+            })
         return jsonify({
             "ok": False,
-            "requires_2fa": True,
-            "temp_id": temp_id,
-            "error": "Instagram requires a verification code. Check your email or SMS.",
+            "error": "Instagram rejected this login attempt. Use a residential proxy (PROXY_URL) or upload cookies instead.",
         })
     except ChallengeRequired as e:
-        challenge_url = getattr(e, "challenge_url", None)
+        challenge = getattr(e, "challenge", None)
+        challenge_url = None
+        if challenge and challenge.get("api_path"):
+            challenge_url = f"https://i.instagram.com{challenge['api_path']}"
         temp_id = str(uuid.uuid4())
         _pending_logins[temp_id] = {
             "client": client,
@@ -187,7 +198,7 @@ def api_login():
         }
         if challenge_url:
             resp["challenge_url"] = challenge_url
-            resp["error"] = f"Instagram requires a manual challenge. Open the URL in your browser to complete it, then click Verify."
+            resp["error"] = "Instagram requires a manual challenge. Open the URL in your browser to complete it, then click Verify."
         else:
             resp["error"] = "Instagram requires a verification code. Check your email or SMS."
         return jsonify(resp)
