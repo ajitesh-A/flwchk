@@ -349,12 +349,8 @@ def api_login_sessionid():
         "ds_user_id": ds_user_id,
     }
     client.set_settings(settings)
-    client.user_id = int(ds_user_id)
-
-    try:
-        client.get_timeline_feed()
-    except Exception:
-        pass
+    if not client.user_id:
+        client._user_id = int(ds_user_id)
 
     sid = str(uuid.uuid4())
     session["sid"] = sid
