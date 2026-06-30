@@ -356,7 +356,7 @@ def api_login_sessionid():
     session["sid"] = sid
     _sessions[sid] = {
         "client": client,
-        "username": "",
+        "username": f"user_{client.user_id}",
         "user_id": client.user_id,
         "non_followers": [],
         "followers_count": 0,
@@ -388,10 +388,10 @@ def api_fetch():
 
     def run():
         try:
-            status["phase"] = "followers"
-            followers = fetch_followers(client, user_id, lambda n: status.update({"current": n}))
             status["phase"] = "following"
             following = fetch_following(client, user_id, lambda n: status.update({"current": n}))
+            status["phase"] = "followers"
+            followers = fetch_followers(client, user_id, lambda n: status.update({"current": n}))
             status["phase"] = "analyzing"
             non_followers = find_non_followers(following, followers)
             us["non_followers"] = non_followers
