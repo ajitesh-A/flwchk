@@ -352,11 +352,18 @@ def api_login_sessionid():
     if not client.user_id:
         client._user_id = int(ds_user_id)
 
+    username = f"user_{client.user_id}"
+    try:
+        user_info = client.user_short_gql(client.user_id)
+        username = user_info.username
+    except Exception:
+        pass
+
     sid = str(uuid.uuid4())
     session["sid"] = sid
     _sessions[sid] = {
         "client": client,
-        "username": f"user_{client.user_id}",
+        "username": username,
         "user_id": client.user_id,
         "non_followers": [],
         "followers_count": 0,
