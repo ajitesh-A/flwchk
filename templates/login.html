@@ -146,9 +146,6 @@
 <header class="text-center space-y-base mb-base flex flex-col items-center">
 <img alt="FLWCHK Logo" class="w-20 h-20 mb-base drop-shadow-[0_0_15px_rgba(227,181,255,0.3)]" src="/static/img/logo.svg"/>
 <h1 class="font-display-lg text-[64px] leading-tight uppercase font-black tracking-tighter text-gradient mb-2" style="font-weight: 900; letter-spacing: -0.04em;">FLWCHK</h1>
-<p class="font-body-md text-body-md text-on-surface-variant max-w-[340px] opacity-80">
-                Next-generation analytics for high-performance profile management.
-            </p>
 </header>
 <section class="glass-card rounded-xl p-gutter shadow-2xl">
 <form class="flex flex-col gap-gutter" id="login-form">
@@ -172,10 +169,26 @@
                     <span class="material-symbols-outlined absolute left-gutter top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">pin</span>
                     <input class="w-full h-12 pl-11 pr-gutter bg-surface-container-lowest/50 border border-white/5 rounded-lg text-on-surface font-body-md input-focus-ring transition-all" id="verification-code" placeholder="Enter code from email/SMS" type="text" autocomplete="off"/>
                 </div>
+                <div class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed" id="challenge-url-container" style="display:none">
+                    Open <a class="text-primary underline break-all" id="challenge-url-link" href="#" target="_blank"></a> in your browser, complete the challenge, then enter the code above.
+                </div>
             </div>
             <button class="w-full h-12 purple-gradient-bg text-white font-headline-lg-mobile rounded-lg hover:brightness-125 active:scale-[0.98] transition-all flex items-center justify-center gap-base border border-white/10 shadow-[0_4px_20px_rgba(131,58,180,0.4)]" id="login-btn" type="submit">
                     Log In
                     <span class="material-symbols-outlined text-[20px]">login</span>
+</button>
+</form>
+</section>
+<div class="text-center">
+<button class="font-label-md text-label-md text-outline-variant uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity cursor-pointer bg-transparent border-none" id="toggle-cookie" type="button" style="font-size:10px">Or sign in with cookies</button>
+</div>
+<section class="glass-card rounded-xl p-gutter shadow-2xl" id="cookie-section" style="display:none">
+<form class="flex flex-col gap-gutter" id="cookie-form">
+<p class="font-label-md text-label-md text-on-surface-variant opacity-60">Upload Instagram cookies exported from your browser (JSON or Netscape format).</p>
+<input accept=".json,.txt" class="w-full text-on-surface font-body-md file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:purple-gradient-bg file:text-white file:font-body-md file:cursor-pointer" id="cookie-file" type="file"/>
+<button class="w-full h-12 purple-gradient-bg text-white font-headline-lg-mobile rounded-lg hover:brightness-125 active:scale-[0.98] transition-all flex items-center justify-center gap-base border border-white/10 shadow-[0_4px_20px_rgba(131,58,180,0.4)]" id="cookie-btn" type="submit">
+                        Sign In with Cookies
+                        <span class="material-symbols-outlined text-[20px]">key</span>
 </button>
 </form>
 </section>
@@ -187,11 +200,6 @@
                 </p>
 </div>
 </div>
-<footer class="text-center pb-gutter mt-4">
-<p class="font-label-md text-[10px] text-outline-variant uppercase tracking-[0.2em] opacity-40">
-                \u00a9 2024 FLWCHK Utility Pro. For professional use only.
-            </p>
-</footer>
 </main>
 <script>
 let currentTempId = null;
@@ -280,6 +288,15 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             codeField.style.display = 'flex';
             codeField.style.flexDirection = 'column';
             codeField.style.gap = 'var(--spacing-base, 8px)';
+            const challengeContainer = document.getElementById('challenge-url-container');
+            const challengeLink = document.getElementById('challenge-url-link');
+            if (data.challenge_url) {
+                challengeLink.href = data.challenge_url;
+                challengeLink.textContent = data.challenge_url;
+                challengeContainer.style.display = 'block';
+            } else {
+                challengeContainer.style.display = 'none';
+            }
             btn.innerHTML = 'Verify';
             setStatus(data.error, 'error');
             codeInput.focus();
@@ -293,6 +310,46 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         setStatus('Network error. Please try again.', 'error');
         btn.disabled = false;
         btn.innerHTML = 'Log In <span class="material-symbols-outlined text-[20px]">login</span>';
+    }
+});
+
+// Cookie upload toggle
+const toggleCookie = document.getElementById('toggle-cookie');
+const cookieSection = document.getElementById('cookie-section');
+toggleCookie.addEventListener('click', () => {
+    const shown = cookieSection.style.display !== 'none';
+    cookieSection.style.display = shown ? 'none' : 'flex';
+    cookieSection.style.flexDirection = 'column';
+    cookieSection.style.gap = 'var(--spacing-base, 8px)';
+    toggleCookie.textContent = shown ? 'Or sign in with cookies' : 'Hide cookie upload';
+});
+
+document.getElementById('cookie-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById('cookie-file');
+    const file = fileInput.files[0];
+    if (!file) { setStatus('Select a cookie file first.', 'error'); return; }
+    const btn = document.getElementById('cookie-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="animate-spin material-symbols-outlined text-[20px]">sync</span> Authenticating...';
+    setStatus('Uploading and verifying cookies...', 'loading');
+    try {
+        const fd = new FormData();
+        fd.append('cookies', file);
+        const res = await fetch('/api/login-cookie', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.ok) {
+            setStatus('Authentication successful. Redirecting...', 'success');
+            window.location.href = '/dashboard';
+        } else {
+            setStatus(data.error || 'Cookie login failed.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = 'Sign In with Cookies <span class="material-symbols-outlined text-[20px]">key</span>';
+        }
+    } catch (err) {
+        setStatus('Network error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In with Cookies <span class="material-symbols-outlined text-[20px]">key</span>';
     }
 });
 </script>

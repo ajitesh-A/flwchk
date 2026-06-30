@@ -1,7 +1,9 @@
 import os
+import json
 import time
 import uuid
 import threading
+from pathlib import Path
 
 from flask import Flask, session, request, jsonify, render_template
 from functools import wraps
@@ -15,14 +17,56 @@ from analyzer import find_non_followers
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-prod")
 
+SESSIONS_DIR = Path(__file__).parent / "sessions"
 _sessions: dict[str, dict] = {}
 _pending_logins: dict[str, dict] = {}
 
+def _save_session_data(sid: str, us: dict):
+    SESSIONS_DIR.mkdir(exist_ok=True)
+    settings = us["client"].get_settings()
+    settings["_meta"] = {
+        "username": us["username"],
+        "user_id": us["user_id"],
+    }
+    with open(SESSIONS_DIR / f"{sid}.json", "w") as f:
+        json.dump(settings, f)
+
+def _load_session_data(sid: str) -> dict | None:
+    path = SESSIONS_DIR / f"{sid}.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path) as f:
+            settings = json.load(f)
+        meta = settings.pop("_meta", {})
+        client = _make_client()
+        client.set_settings(settings)
+        return {
+            "client": client,
+            "username": meta.get("username", ""),
+            "user_id": meta.get("user_id", client.user_id),
+            "non_followers": [],
+            "followers_count": 0,
+            "following_count": 0,
+            "task_status": None,
+        }
+    except Exception:
+        return None
+
+def _delete_session_data(sid: str):
+    path = SESSIONS_DIR / f"{sid}.json"
+    if path.exists():
+        path.unlink()
+
 def get_user_session() -> dict | None:
     sid = session.get("sid")
-    if not sid or sid not in _sessions:
+    if not sid:
         return None
-    return _sessions[sid]
+    if sid not in _sessions:
+        us = _load_session_data(sid)
+        if us:
+            _sessions[sid] = us
+    return _sessions.get(sid)
 
 def requires_auth(f):
     @wraps(f)
@@ -48,6 +92,9 @@ def _make_client() -> Client:
     client.delay_range = [3, 6]
     client.set_locale("en_US")
     client.set_country("US")
+    proxy = os.environ.get("PROXY_URL")
+    if proxy:
+        client.set_proxy(proxy)
     return client
 
 
@@ -58,6 +105,44 @@ def index():
 @app.route("/dashboard")
 def dashboard_page():
     return render_template("dashboard.html")
+
+
+COOKIE_DOMAIN = ".instagram.com"
+
+def _build_client_from_cookies(cookies: dict) -> Client:
+    required = {"sessionid", "csrftoken", "ds_user_id"}
+    missing = required - cookies.keys()
+    if missing:
+        raise RuntimeError(f"Missing required cookies: {', '.join(missing)}")
+    client = _make_client()
+    settings = client.get_settings()
+    settings["cookies"] = cookies
+    client.set_settings(settings)
+    if not client.user_id:
+        raise RuntimeError("Could not verify user from cookies")
+    return client
+
+def _make_client_from_file(content: str) -> Client:
+    try:
+        data = json.loads(content)
+        if isinstance(data, list):
+            cookies = {}
+            for c in data:
+                if isinstance(c, dict) and c.get("name") and COOKIE_DOMAIN in c.get("domain", ""):
+                    cookies[c["name"]] = c["value"]
+            return _build_client_from_cookies(cookies)
+    except json.JSONDecodeError:
+        pass
+
+    cookies = {}
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 7 and COOKIE_DOMAIN in parts[0]:
+            cookies[parts[5]] = parts[6]
+    return _build_client_from_cookies(cookies)
 
 
 @app.route("/api/login", methods=["POST"])
@@ -86,7 +171,8 @@ def api_login():
             "temp_id": temp_id,
             "error": "Instagram requires a verification code. Check your email or SMS.",
         })
-    except ChallengeRequired:
+    except ChallengeRequired as e:
+        challenge_url = getattr(e, "challenge_url", None)
         temp_id = str(uuid.uuid4())
         _pending_logins[temp_id] = {
             "client": client,
@@ -94,12 +180,17 @@ def api_login():
             "password": password,
             "created_at": time.time(),
         }
-        return jsonify({
+        resp = {
             "ok": False,
             "requires_2fa": True,
             "temp_id": temp_id,
-            "error": "Instagram requires a challenge response. Check your email or SMS.",
-        })
+        }
+        if challenge_url:
+            resp["challenge_url"] = challenge_url
+            resp["error"] = f"Instagram requires a manual challenge. Open the URL in your browser to complete it, then click Verify."
+        else:
+            resp["error"] = "Instagram requires a verification code. Check your email or SMS."
+        return jsonify(resp)
     except Exception as e:
         return jsonify({"ok": False, "error": f"Login failed: {e}"})
 
@@ -114,6 +205,7 @@ def api_login():
         "following_count": 0,
         "task_status": None,
     }
+    _save_session_data(sid, _sessions[sid])
 
     return jsonify({"ok": True, "user_id": client.user_id})
 
@@ -151,14 +243,75 @@ def api_login_2fa():
         "following_count": 0,
         "task_status": None,
     }
+    _save_session_data(sid, _sessions[sid])
 
+    return jsonify({"ok": True, "user_id": client.user_id})
+
+@app.route("/api/login-cookie", methods=["POST"])
+def api_login_cookie():
+    if "cookies" not in request.files:
+        return jsonify({"ok": False, "error": "No file uploaded"})
+    file = request.files["cookies"]
+    if file.filename == "":
+        return jsonify({"ok": False, "error": "No file selected"})
+    try:
+        content = file.read().decode("utf-8")
+        client = _make_client_from_file(content)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Failed to parse cookies: {e}"})
+
+    sid = str(uuid.uuid4())
+    session["sid"] = sid
+    _sessions[sid] = {
+        "client": client,
+        "username": "user",
+        "user_id": client.user_id,
+        "non_followers": [],
+        "followers_count": 0,
+        "following_count": 0,
+        "task_status": None,
+    }
+    _save_session_data(sid, _sessions[sid])
+    return jsonify({"ok": True, "user_id": client.user_id})
+
+@app.route("/api/login-session-file", methods=["POST"])
+def api_login_session_file():
+    if "session" not in request.files:
+        return jsonify({"ok": False, "error": "No file uploaded"})
+    file = request.files["session"]
+    if file.filename == "":
+        return jsonify({"ok": False, "error": "No file selected"})
+    try:
+        content = file.read().decode("utf-8")
+        settings = json.loads(content)
+        meta = settings.pop("_meta", {})
+        client = _make_client()
+        client.set_settings(settings)
+        if not client.user_id:
+            raise RuntimeError("Invalid session file")
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Failed to load session: {e}"})
+
+    sid = str(uuid.uuid4())
+    session["sid"] = sid
+    _sessions[sid] = {
+        "client": client,
+        "username": meta.get("account_name", meta.get("username", "user")),
+        "user_id": client.user_id,
+        "non_followers": [],
+        "followers_count": 0,
+        "following_count": 0,
+        "task_status": None,
+    }
+    _save_session_data(sid, _sessions[sid])
     return jsonify({"ok": True, "user_id": client.user_id})
 
 @app.route("/api/logout", methods=["POST"])
 def api_logout():
     sid = session.pop("sid", None)
-    if sid and sid in _sessions:
-        del _sessions[sid]
+    if sid:
+        _sessions.pop(sid, None)
+        _delete_session_data(sid)
     return jsonify({"ok": True})
 
 @app.route("/api/fetch", methods=["POST"])

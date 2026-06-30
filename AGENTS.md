@@ -4,7 +4,7 @@
 Web app at `instagram_nonfollowers/` that checks which Instagram accounts you follow don't follow you back. Built with Flask + instagrapi, UI from Stitch (stitch.withgoogle.com).
 
 ## Architecture
-- `server.py` — Flask app with API endpoints (`/api/login`, `/api/fetch`, `/api/fetch-status`, `/api/results`, `/api/unfollow`, `/api/logout`)
+- `server.py` — Flask app with API endpoints
 - `main.py` — Entry point, launches Flask on `0.0.0.0:5000`
 - `templates/login.html` — Setup/Login screen (Stitch design)
 - `templates/dashboard.html` — Main dashboard (Stitch design)
@@ -17,7 +17,9 @@ Web app at `instagram_nonfollowers/` that checks which Instagram accounts you fo
 - `analyzer.py` — `find_non_followers()` set difference logic
 
 ## Key design decisions
-- **In-memory sessions**: Each browser gets a Flask signed session cookie; instagrapi `Client` stored in server RAM keyed by session ID. No passwords/accounts written to disk.
+- **Session persistence**: instagrapi `Client` settings saved to `sessions/{sid}.json` after login. On cache miss, loaded from disk. Survives server restarts on paid Render (persistent disk).
+- **Cookie upload**: Users can export Instagram cookies from browser and upload the file – bypasses password login and 2FA. Accepts both JSON (EditThisCookie/Get cookies.txt) and Netscape (cookies.txt) formats.
+- **Proxy support**: `PROXY_URL` env var sets a proxy on the instagrapi client for residential IP routing.
 - **Single user per session**: No account switching (multi-account removed for web).
 - **Background fetch**: `POST /api/fetch` spawns a `threading.Thread`; client polls `GET /api/fetch-status` for progress.
 - **Rate limiting**: 1 concurrent fetch per session (rejected if already running).
@@ -26,7 +28,9 @@ Web app at `instagram_nonfollowers/` that checks which Instagram accounts you fo
 ## Deployment (Render)
 - `Procfile`: `gunicorn main:app`
 - `requirements.txt`: `instagrapi`, `flask`, `gunicorn`
-- Set `FLASK_SECRET_KEY` env var in Render dashboard for production session signing.
+- Required env var: `FLASK_SECRET_KEY` (random string for session signing)
+- Optional env var: `PROXY_URL` (residential proxy for bypassing Instagram rate limits/2FA)
+- Paid tier required for persistent disk (session files survive restarts)
 
 ## API endpoints
 
@@ -34,6 +38,8 @@ Web app at `instagram_nonfollowers/` that checks which Instagram accounts you fo
 |--------|------|------|------|---------|
 | POST | `/api/login` | No | `{username, password}` | `{ok, user_id}` or `{ok: false, requires_2fa: true, temp_id}` |
 | POST | `/api/login-2fa` | No | `{temp_id, verification_code}` | `{ok, user_id}` |
+| POST | `/api/login-cookie` | No | multipart: `cookies` (file) | `{ok, user_id}` |
+| POST | `/api/login-session-file` | No | multipart: `session` (file) | `{ok, user_id}` |
 | POST | `/api/logout` | Yes | — | `{ok}` |
 | POST | `/api/fetch` | Yes | — | `{ok}` |
 | GET | `/api/fetch-status` | Yes | — | `{running, phase, current, error}` |
