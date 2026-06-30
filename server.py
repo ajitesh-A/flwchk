@@ -354,8 +354,8 @@ def api_login_sessionid():
 
     username = f"user_{client.user_id}"
     try:
-        user_info = client.user_short_gql(client.user_id)
-        username = user_info.username
+        resp = client.private_request(f"users/{client.user_id}/info/")
+        username = resp.get("user", {}).get("username", username)
     except Exception:
         pass
 
